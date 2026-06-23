@@ -103,7 +103,7 @@ jobs:
             cp /tmp/slots-boot-0.1.0.tar.gz /home/builder/build/packaging/arch/
             chown -R builder:builder /home/builder/build
             cd /home/builder/build/packaging/arch
-            sudo -u builder makepkg -f --noconfirm --skipinteg
+            sudo -u builder makepkg -f --noconfirm --skipinteg --nodeps
             mkdir -p /src/dist
             cp slots-boot-0.1.0-*-x86_64.pkg.tar.zst /src/dist/
           '
