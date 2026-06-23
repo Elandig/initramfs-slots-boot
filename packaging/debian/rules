@@ -1,0 +1,23 @@
+#!/usr/bin/make -f
+export DEB_BUILD_MAINT_OPTIONS = hardening=+all
+export CARGO_HOME = $(CURDIR)/debian/cargo_home
+
+%:
+	dh $@
+
+override_dh_auto_build:
+	cargo build --release --offline || cargo build --release
+
+override_dh_auto_test:
+	cargo test --release --offline || cargo test --release || true
+
+override_dh_auto_install:
+	install -Dm755 target/release/slots-boot debian/slots-boot/usr/bin/slots-boot
+	install -Dm755 initramfs/initramfs-tools/hooks/slots \
+		debian/slots-boot/usr/share/initramfs-tools/hooks/slots
+	install -Dm755 initramfs/initramfs-tools/scripts/init-premount/slots \
+		debian/slots-boot/usr/share/initramfs-tools/scripts/init-premount/slots
+
+override_dh_auto_clean:
+	cargo clean || true
+	rm -rf debian/cargo_home

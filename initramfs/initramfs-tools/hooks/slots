@@ -1,0 +1,19 @@
+#!/bin/sh
+
+PREREQ=""
+prereqs() { echo "$PREREQ"; }
+case "$1" in
+    prereqs)
+        prereqs
+        exit 0
+        ;;
+esac
+
+. /usr/share/initramfs-tools/hook-functions
+
+copy_exec /usr/bin/slots-boot /bin
+
+# Keyboard, so the player can type.
+for mod in atkbd i8042 hid-generic usbhid; do
+    manual_add_modules "$mod"
+done

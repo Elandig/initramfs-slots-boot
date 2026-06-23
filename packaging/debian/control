@@ -1,0 +1,17 @@
+Source: slots-boot
+Section: admin
+Priority: optional
+Maintainer: Elandig <elan@sestudio.org>
+Build-Depends: debhelper-compat (= 13), cargo, rustc
+Standards-Version: 4.6.2
+Homepage: https://github.com/Elandig/initramfs-slots-boot
+
+Package: slots-boot
+Architecture: amd64 arm64
+Depends: ${shlibs:Depends}, ${misc:Depends}, initramfs-tools
+Description: slot machine that gates your boot until you hit the jackpot
+ slots-boot runs from the initramfs and won't let the boot finish until you spin
+ 7-7-7 on the reels.
+ .
+ It's a novelty boot gate. Type the recovery word (see the README) at the slot
+ screen if you ever need to skip it.

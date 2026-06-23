@@ -1,0 +1,20 @@
+post_install() {
+    cat <<'MSG'
+==> slots-boot is installed but not yet armed.
+==> Add 'slots' to the HOOKS array in /etc/mkinitcpio.conf, after 'keyboard' and
+==> before 'block'/'filesystems', e.g.:
+==>
+==>   HOOKS=(base udev autodetect modconf kms keyboard slots block filesystems fsck)
+==>
+==> Then regenerate the initramfs:  mkinitcpio -P
+==> Your way out, should you ever need it, is the recovery word noted in the README.
+MSG
+}
+
+post_upgrade() {
+    mkinitcpio -P
+}
+
+post_remove() {
+    mkinitcpio -P
+}

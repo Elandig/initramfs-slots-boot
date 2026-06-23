@@ -1,0 +1,19 @@
+[Unit]
+Description=slots-boot - spin to boot
+DefaultDependencies=no
+After=systemd-vconsole-setup.service
+Before=initrd-root-fs.target sysroot.mount
+Conflicts=shutdown.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/slots-boot
+StandardInput=tty
+StandardOutput=tty
+StandardError=tty
+TTYPath=/dev/console
+TTYReset=yes
+RemainAfterExit=no
+
+[Install]
+WantedBy=initrd.target

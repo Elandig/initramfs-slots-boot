@@ -1,0 +1,51 @@
+name: Distro integration (QEMU)
+
+# Heavy: downloads a cloud image, builds + installs the real package inside a live
+# distro, reboots, and checks the slot machine gates the boot. Needs KVM, so it runs
+# on demand and weekly rather than on every push.
+on:
+  workflow_dispatch:
+    inputs:
+      distro:
+        description: which distro (arch|ubuntu|fedora|all)
+        default: all
+  schedule:
+    - cron: '0 5 * * 1'
+
+permissions:
+  contents: read
+
+jobs:
+  distro:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        distro: [arch, ubuntu, fedora]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Enable KVM for the runner
+        run: |
+          echo 'KERNEL=="kvm", GROUP="kvm", MODE="0666", OPTIONS+="static_node=kvm"' \
+            | sudo tee /etc/udev/rules.d/99-kvm4all.rules
+          sudo udevadm control --reload-rules
+          sudo udevadm trigger --name-match=kvm
+
+      - name: Install QEMU and helpers
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y qemu-system-x86 qemu-utils xorriso curl python3
+
+      - name: Run integration test
+        if: github.event.inputs.distro == 'all' || github.event.inputs.distro == matrix.distro || github.event_name == 'schedule'
+        timeout-minutes: 45
+        run: test/integration/run.sh ${{ matrix.distro }}
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-${{ matrix.distro }}-logs
+          path: test/integration/work/*.log
+          if-no-files-found: ignore

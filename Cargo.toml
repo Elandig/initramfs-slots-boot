@@ -1,0 +1,26 @@
+[package]
+name = "slots-boot"
+version = "0.1.0"
+edition = "2021"
+authors = ["Elandig <elan@sestudio.org>"]
+description = "A slot machine that holds your boot hostage until you hit the jackpot."
+license = "MIT"
+repository = "https://github.com/Elandig/initramfs-slots-boot"
+readme = "README.md"
+
+[[bin]]
+name = "slots-boot"
+path = "src/main.rs"
+
+[dependencies]
+# The only thing we pull in. Everything else is std. We need libc for termios,
+# ioctl and a couple of signal calls; writing those by hand per-arch isn't worth it.
+libc = "0.2"
+
+[profile.release]
+# This binary lives in the initramfs, so keep it small.
+opt-level = "z"
+lto = true
+panic = "abort"
+strip = true
+codegen-units = 1

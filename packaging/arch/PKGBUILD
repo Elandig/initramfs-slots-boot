@@ -1,0 +1,38 @@
+# Maintainer: Elandig <elan@sestudio.org>
+pkgname=slots-boot
+_repo=initramfs-slots-boot
+pkgver=0.1.0
+pkgrel=1
+pkgdesc="A slot machine that holds your boot hostage until you hit the jackpot"
+arch=('x86_64' 'aarch64')
+url="https://github.com/Elandig/$_repo"
+license=('MIT')
+depends=('mkinitcpio')
+makedepends=('cargo')
+install="$pkgname.install"
+# GitHub's tarball unpacks to <repo>-<version>/, which differs from pkgname.
+source=("$pkgname-$pkgver.tar.gz::$url/archive/refs/tags/v$pkgver.tar.gz")
+sha256sums=('SKIP')
+
+build() {
+    cd "$_repo-$pkgver"
+    export CARGO_TARGET_DIR=target
+    cargo build --release --locked
+}
+
+check() {
+    cd "$_repo-$pkgver"
+    cargo test --release --locked
+}
+
+package() {
+    cd "$_repo-$pkgver"
+    # mkinitcpio's add_binary pulls in the binary's libc, so a normal build is fine.
+    install -Dm755 target/release/slots-boot "$pkgdir/usr/bin/slots-boot"
+    install -Dm644 initramfs/mkinitcpio/install/slots "$pkgdir/usr/lib/initcpio/install/slots"
+    install -Dm644 initramfs/mkinitcpio/hooks/slots "$pkgdir/usr/lib/initcpio/hooks/slots"
+    # systemd-initramfs unit (shared with dracut), for mkinitcpio's 'systemd' hook
+    install -Dm644 initramfs/dracut/90slots/slots-boot.service "$pkgdir/usr/lib/systemd/system/slots-boot.service"
+    install -Dm644 LICENSE "$pkgdir/usr/share/licenses/$pkgname/LICENSE"
+    install -Dm644 README.md "$pkgdir/usr/share/doc/$pkgname/README.md"
+}

@@ -1,0 +1,9 @@
+# slots-boot is a Rust project. The shell, Python and packaging files are build,
+# install and test tooling - keep them out of GitHub's language breakdown so the
+# repo isn't mislabelled as a shell project.
+install.sh    linguist-detectable=false
+uninstall.sh  linguist-detectable=false
+initramfs/**  linguist-detectable=false
+packaging/**  linguist-detectable=false
+test/**       linguist-detectable=false
+docs/**       linguist-documentation

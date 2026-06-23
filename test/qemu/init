@@ -1,0 +1,27 @@
+#!/bin/sh
+# PID 1 in the test initramfs: mount the basics, then play (or run a scripted game).
+
+BB=/bin/busybox
+CON=/dev/console
+
+$BB mount -t proc none /proc 2>/dev/null
+$BB mount -t sysfs none /sys 2>/dev/null
+$BB mount -t devtmpfs none /dev 2>/dev/null || {
+    # No devtmpfs in this kernel - make the nodes we need by hand (we're PID 1).
+    $BB mknod /dev/console c 5 1 2>/dev/null
+    $BB mknod /dev/null c 1 3 2>/dev/null
+}
+
+# Automated run: scripted spins + a fixed seed, so the outcome is repeatable.
+if [ -f /slots-input ]; then
+    echo "== automated play (seed ${SLOTS_SEED:-1}) ==" > $CON
+    SLOTS_SEED="${SLOTS_SEED:-1}" /bin/slots-boot < /slots-input > $CON 2>&1
+    echo "SLOTS_DONE rc=$?" > $CON
+    $BB poweroff -f
+fi
+
+# interactive: spin until you win
+/bin/slots-boot < $CON > $CON 2>&1
+echo "" > $CON
+echo "the gate opened - a real boot would switch_root here. powering off." > $CON
+$BB poweroff -f

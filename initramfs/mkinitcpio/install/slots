@@ -1,0 +1,31 @@
+#!/bin/bash
+
+build() {
+    add_binary /usr/bin/slots-boot
+
+    # keyboard, in case the 'keyboard' hook isn't present
+    add_module 'atkbd'
+    add_module 'i8042'
+    add_module 'hid-generic'
+    add_module 'usbhid'
+
+    if declare -f add_systemd_unit >/dev/null 2>&1; then
+        # systemd initramfs never calls run_hook; run as a unit instead (as dracut does)
+        add_systemd_unit slots-boot.service
+        add_symlink /usr/lib/systemd/system/initrd.target.wants/slots-boot.service \
+            /usr/lib/systemd/system/slots-boot.service
+    fi
+
+    # busybox initramfs: the runtime hook handles it
+    add_runscript
+}
+
+help() {
+    cat <<HELPEOF
+This hook runs slots-boot before the root filesystem is mounted. The machine keeps
+the boot paused until you spin 7-7-7. Put it after 'keyboard' and before
+'block' / 'filesystems' in the HOOKS array, e.g.
+
+  HOOKS=(base udev autodetect modconf kms keyboard slots block filesystems fsck)
+HELPEOF
+}

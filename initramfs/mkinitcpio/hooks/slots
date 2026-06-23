@@ -1,0 +1,7 @@
+#!/bin/ash
+
+run_hook() {
+    msg ":: spin to boot"
+    exec </dev/console >/dev/console 2>&1
+    /usr/bin/slots-boot
+}

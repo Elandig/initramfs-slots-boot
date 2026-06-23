@@ -1,0 +1,5 @@
+/target
+/.git
+**/work
+*.cpio.gz
+*.deb

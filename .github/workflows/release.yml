@@ -1,0 +1,126 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  binaries:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - target: x86_64-unknown-linux-musl
+            cross: false
+          - target: aarch64-unknown-linux-musl
+            cross: true
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: ${{ matrix.target }}
+      - if: matrix.cross
+        uses: taiki-e/install-action@v2
+        with:
+          tool: cross
+      - name: Build
+        run: |
+          if [ "${{ matrix.cross }}" = "true" ]; then
+            cross build --release --target ${{ matrix.target }}
+          else
+            cargo build --release --target ${{ matrix.target }}
+          fi
+      - name: Stage artifact
+        run: |
+          mkdir -p dist
+          cp target/${{ matrix.target }}/release/slots-boot dist/slots-boot-${{ matrix.target }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bin-${{ matrix.target }}
+          path: dist/*
+
+  deb:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: x86_64-unknown-linux-musl
+      - name: Build .deb
+        run: |
+          packaging/debian/build-deb.sh
+          mkdir -p dist && mv slots-boot_*.deb dist/
+      - uses: actions/upload-artifact@v4
+        with:
+          name: deb
+          path: dist/*.deb
+
+  rpm:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the .rpm in a Fedora container
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src fedora:latest bash -c '
+            set -euxo pipefail
+            dnf install -y --setopt=install_weak_deps=False cargo rust rpm-build tar
+            mkdir -p /root/rpmbuild/SOURCES
+            tar --exclude=./target --exclude=./.git \
+                --exclude=./test/integration/work --exclude=./test/qemu/work \
+                --transform "s,^\.,initramfs-slots-boot-0.1.0," \
+                -czf /root/rpmbuild/SOURCES/slots-boot-0.1.0.tar.gz .
+            rpmbuild -ba packaging/fedora/slots-boot.spec
+            mkdir -p /src/dist
+            cp /root/rpmbuild/RPMS/*/slots-boot-0.1.0-*.rpm /src/dist/
+          '
+      - uses: actions/upload-artifact@v4
+        with:
+          name: rpm
+          path: dist/*.rpm
+
+  arch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build the Arch package in a container
+        run: |
+          docker run --rm -v "$PWD:/src" -w /src archlinux:latest bash -c '
+            set -euxo pipefail
+            pacman -Sy --noconfirm --needed rust base-devel sudo
+            useradd -m builder
+            cp -a /src /home/builder/build
+            tar -C /home/builder --exclude=build/target --exclude=build/.git \
+                --exclude=build/test/integration/work --exclude=build/test/qemu/work \
+                --transform "s,^build,initramfs-slots-boot-0.1.0," \
+                -czf /tmp/slots-boot-0.1.0.tar.gz build
+            cp /tmp/slots-boot-0.1.0.tar.gz /home/builder/build/packaging/arch/
+            chown -R builder:builder /home/builder/build
+            cd /home/builder/build/packaging/arch
+            sudo -u builder makepkg -f --noconfirm --skipinteg
+            mkdir -p /src/dist
+            cp slots-boot-0.1.0-*-x86_64.pkg.tar.zst /src/dist/
+          '
+      - uses: actions/upload-artifact@v4
+        with:
+          name: arch-pkg
+          path: dist/*.pkg.tar.zst
+
+  release:
+    needs: [binaries, deb, rpm, arch]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          path: dist
+          merge-multiple: true
+      - uses: softprops/action-gh-release@v2
+        with:
+          files: dist/**
+          generate_release_notes: true

@@ -1,0 +1,13 @@
+/target
+
+# test artifacts
+test/qemu/work/
+test/qemu/*.cpio.gz
+test/integration/work/
+__pycache__/
+*.pyc
+
+# built packages
+*.deb
+*.pkg.tar.zst
+*.rpm
